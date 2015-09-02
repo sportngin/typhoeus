@@ -48,7 +48,7 @@ module Typhoeus
     # @return [ Ethon::Easy ] The easy.
     def get
       begin
-        easy_cleanup = request.options[:easy_cleanup]
+        easy_cleanup = request.options.delete(:easy_cleanup)
         easy.http_request(
           request.base_url.to_s,
           request.options.fetch(:method, :get),
