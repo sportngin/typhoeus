@@ -128,9 +128,9 @@ module Typhoeus
       end
       easy.on_complete do |easy|
         request.finish(Response.new(easy.mirror.options))
-        if easy_cleanup
+        if easy_cleanup # force the easy cleanup and not rely on GC via ffi
           easy.cleanup
-        else # dont give the easy back to the pool
+        else # else give the easy back to the pool
           Typhoeus::Pool.release(easy)
         end
         if hydra && !hydra.queued_requests.empty?
