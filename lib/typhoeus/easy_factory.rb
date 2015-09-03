@@ -48,6 +48,7 @@ module Typhoeus
     # @return [ Ethon::Easy ] The easy.
     def get
       begin
+        easy_cleanup = request.options.delete(:easy_cleanup)
         easy.http_request(
           request.base_url.to_s,
           request.options.fetch(:method, :get),
@@ -57,7 +58,7 @@ module Typhoeus
         help = provide_help(e.message.match(/:\s(\w+)/)[1])
         raise $!, "#{$!}#{help}", $!.backtrace
       end
-      set_callback
+      set_callback(easy_cleanup)
       easy
     end
 
@@ -108,7 +109,7 @@ module Typhoeus
     #   easy_factory.set_callback
     #
     # @return [ Ethon::Easy ] The easy.
-    def set_callback
+    def set_callback(easy_cleanup = false)
       if request.streaming?
         response = nil
         easy.on_headers do |easy|
@@ -127,7 +128,11 @@ module Typhoeus
       end
       easy.on_complete do |easy|
         request.finish(Response.new(easy.mirror.options))
-        Typhoeus::Pool.release(easy)
+        if easy_cleanup # force the easy cleanup and not rely on GC via ffi
+          easy.cleanup
+        else # else give the easy back to the pool
+          Typhoeus::Pool.release(easy)
+        end
         if hydra && !hydra.queued_requests.empty?
           hydra.dequeue_many
         end
